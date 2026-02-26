@@ -19,6 +19,47 @@ const NewLandingPage: React.FC<NewLandingPageProps> = ({ onStartEditing, onBuyCr
         document.title = "BatchoCanvas | Canvas for Structured Design";
     }, []);
 
+    const imageRef = React.useRef<HTMLImageElement>(null);
+    const [scrollStyles, setScrollStyles] = useState({
+        opacity: 0,
+        transform: 'translateY(40px) scale(0.95)'
+    });
+
+    React.useEffect(() => {
+        const handleScroll = () => {
+            if (!imageRef.current) return;
+            const rect = imageRef.current.getBoundingClientRect();
+            const windowHeight = window.innerHeight;
+            
+            // Calculate how close the element is to the center of the viewport
+            const elementCenter = rect.top + rect.height / 2;
+            const viewCenter = windowHeight / 2;
+            const distanceFromCenter = Math.abs(elementCenter - viewCenter);
+            
+            // Fade range: starts fading when 40% away from center
+            const fadeRange = windowHeight * 0.5;
+            
+            let opacity = 1 - (distanceFromCenter / fadeRange);
+            opacity = Math.max(0, Math.min(1, opacity));
+            
+            // Apply a slight parabolic curve for smoother fade
+            const smoothOpacity = Math.pow(opacity, 1.5);
+            
+            const translateY = 40 * (1 - smoothOpacity);
+            const scale = 0.95 + (0.05 * smoothOpacity);
+
+            setScrollStyles({
+                opacity: smoothOpacity,
+                transform: `translateY(${translateY}px) scale(${scale})`
+            });
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        handleScroll(); // Initial position check
+        
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
     const handleSoonSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const token = await executeRecaptcha('UPCOMING_FEATURE');
@@ -201,9 +242,15 @@ const NewLandingPage: React.FC<NewLandingPageProps> = ({ onStartEditing, onBuyCr
                 </div>
 
                 <img
+                    ref={imageRef}
                     src="/Screenshot LP.png"
                     alt="BatchoCanvas Interface"
-                    className="w-full h-auto rounded-lg shadow-2xl border border-zinc-800 mb-6"
+                    className="w-full h-auto rounded-lg shadow-2xl border border-zinc-800 mb-6 transition-all duration-300 ease-out"
+                    style={{
+                        opacity: scrollStyles.opacity,
+                        transform: scrollStyles.transform,
+                        willChange: 'opacity, transform'
+                    }}
                 />
 
                 <div className="max-w-4xl mx-auto space-y-2 text-zinc-300 text-lg md:text-xl leading-relaxed">
